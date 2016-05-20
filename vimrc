@@ -2,11 +2,18 @@ execute pathogen#infect()
 
 " Enable filetype plugins
 filetype plugin on
+filetype on
 
 " Causes problems with paste
 "filetype indent on
 
-colorscheme desert
+" colorscheme blink
+" colorscheme elflord
+  colorscheme gurunew
+" set guifont=Menlo\ Regular:h18
+" set colorcolumn=90
+
+  set background=dark 
 
 " Set 3 lines to the cursor - when moving vertically using j/k
 set so=3
@@ -18,6 +25,9 @@ set noswapfile
 
 fixdel
 set nu
+
+" Increase history of ex commands
+set history=200
 
 " Configure backspace so it acts as it should act
 set backspace=indent,eol,start
@@ -60,8 +70,8 @@ set tabstop=3
 
 set ai "Auto indent
 set si "Smart indent
-" set wrap "Wrap lines
-set nowrap
+set wrap "Wrap lines
+"set nowrap
 
 " Visual mode pressing * or # searches for the current selection
 " Super useful! From an idea by Michael Naumann
@@ -74,6 +84,10 @@ set ruler
 "
 " Enable syntax highlighting
 syntax enable 
+syntax on
+
+" Enable included plugin matchit so % matches html tags and stuff
+packadd! matchit
 
 " work properly with clipboard
 set clipboard=unnamed
@@ -86,6 +100,12 @@ set clipboard=unnamed
 " XML Folding
 let g:xml_syntax_folding=1
 au FileType xml setlocal foldmethod=syntax       
+
+" map <leader>s :source ~/.vimrc<CR>
+" nnoremap <silent> <Esc> :nohlsearch<Bar>:echo<CR>
+
+" set path so :find always uses context of current file
+set path=$PWD/**
 
 function! VisualSelection(direction, extra_filter) range
     let l:saved_reg = @"
@@ -107,3 +127,35 @@ function! VisualSelection(direction, extra_filter) range
     let @/ = l:pattern
     let @" = l:saved_reg
 endfunction
+
+function! DoPrettyXML()
+  " save the filetype so we can restore it later
+  let l:origft = &ft
+  set ft=
+  " delete the xml header if it exists. This will
+  " permit us to surround the document with fake tags
+  " without creating invalid xml.
+  1s/<?xml .*?>//e
+  " insert fake tags around the entire document.
+  " This will permit us to pretty-format excerpts of
+  " XML that may contain multiple top-level elements.
+  0put ='<PrettyXML>'
+  $put ='</PrettyXML>'
+  silent %!xmllint --format -
+  " xmllint will insert an <?xml?> header. it's easy enough to delete
+  " if you don't want it.
+  " delete the fake tags
+  2d
+  $d
+  " restore the 'normal' indentation, which is one extra level
+  " too deep due to the extra tags we wrapped around the document.
+  silent %<
+  " back to home
+  1
+  " restore the filetype
+  exe "set ft=" . l:origft
+  set syntax=xml
+endfunction
+command! XML call DoPrettyXML()
+
+com! Json %!python -m json.tool
